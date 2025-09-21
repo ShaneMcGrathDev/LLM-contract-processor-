@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { fetchData } from '@/utils/api';
+import { Button } from "@/components/ui/button"
 
 export default function Home() {
   const [data, setData] = useState<string>('');
@@ -29,6 +30,9 @@ export default function Home() {
         ) : (
           <p>{data || 'No data received'}</p>
         )}
+      </div>
+      <div>
+        <Button>Click me</Button>
       </div>
     </div>
   );

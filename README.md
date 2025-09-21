@@ -1,13 +1,7 @@
-#   🚀 Full Stack Template
+#   🚀 2025 Case Study Project
 
 
-## 👽 "I want to believe... that this deployment will work."
-
-Welcome, fellow developers. Thanks for using this full stack development template.
-
-This template is designed to save you time and improve your full stack workflow. Repetitively setting up projects is time consuming and tedious, one might argue. 
-
-## ✅ Included in this template
+## ✅ Included in the source template (Created by Shane McGrath and housed in his Github repo)
 - 🐍 Flask REST API
 - ⚛️ Next.js Frontend  
 - 🐳 Docker Compose
@@ -37,8 +31,6 @@ This template is designed to save you time and improve your full stack workflow.
 
 
 # 🔄 Template Replication Instructions
-
-> *"Yo, cousin! You want copies? I got your copies right here - fresher than yesterday's leftover beef!"*
 
 ## Method 1: GitHub Template (Recommended)
 
