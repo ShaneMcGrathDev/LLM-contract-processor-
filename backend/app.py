@@ -1,4 +1,5 @@
 from flask import Flask, jsonify
+from flask import request
 from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import text
@@ -42,6 +43,29 @@ def test_database():
         return jsonify({"status": "success", "message": "Database connected!"})
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
+    
+
+
+@app.route('/api/submit-number', methods=['POST'])
+def submit_number():
+    try:
+        data = request.get_json()
+        number = data.get('number')
+        
+        if number is None:
+            return jsonify({"error": "Number is required"}), 400
+        
+        # Do something with the number (save to database, process, etc.)
+        # For now, just return it back with some processing
+        result = {
+            "received_number": number,
+            "doubled": number * 2,
+            "message": f"Successfully processed number: {number}"
+        }
+        
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)
