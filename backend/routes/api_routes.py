@@ -1,5 +1,7 @@
 from flask import Blueprint, jsonify, request
 from models import db, NumberSubmission
+from werkzeug.utils import secure_filename
+import os
 
 # Create blueprint
 api_bp = Blueprint('api', __name__, url_prefix='/api')
@@ -53,5 +55,22 @@ def create_tables():
     try:
         db.create_all()
         return jsonify({"message": "Tables created successfully!"})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    
+
+
+
+@api_bp.route('/upload-png', methods=['POST'])
+def upload_png():
+    try:
+        file = request.files['file']
+        filename = secure_filename(file.filename)
+        
+        # Create uploads directory if it doesn't exist
+        os.makedirs('uploads', exist_ok=True)
+        
+        file.save(f"uploads/{filename}")
+        return jsonify({"message": "File uploaded!", "filename": filename})
     except Exception as e:
         return jsonify({"error": str(e)}), 500

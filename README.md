@@ -1,6 +1,12 @@
 #   🚀 2025 Case Study Project
 
 
+
+
+
+
+
+
 ## ✅ Included in the source template (Created by Shane McGrath and housed in his Github repo)
 - 🐍 Flask REST API
 - ⚛️ Next.js Frontend  

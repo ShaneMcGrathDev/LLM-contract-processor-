@@ -6,6 +6,8 @@ export default function Page() {
     const [inputNumber, setInputNumber] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [response, setResponse] = useState(null);
+    const [file, setFile] = useState<File | null>(null);
+    const [fileResponse, setFileResponse] = useState<any>(null);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -26,6 +28,25 @@ export default function Page() {
             setResponse({ error: 'Failed to submit number' });
         } finally {
             setIsLoading(false);
+        }
+    };
+
+    const handleFileUpload = async () => {
+        if (!file) return;
+
+        const formData = new FormData();
+        formData.append('file', file);
+
+        try {
+            const res = await fetch('http://localhost:5000/api/upload-png', {
+                method: 'POST',
+                body: formData,
+            });
+
+            const data = await res.json();
+            setFileResponse(data);
+        } catch (error) {
+            setFileResponse({ error: 'Failed to upload file' });
         }
     };
 
@@ -72,6 +93,33 @@ export default function Page() {
                             <div className="mt-4 p-3 bg-gray-50 rounded-md">
                                 <p className="text-sm text-gray-600">Response:</p>
                                 <p className="text-sm font-mono text-gray-900">{JSON.stringify(response, null, 2)}</p>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* File Upload Card */}
+                    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                        <h3 className="text-lg font-medium text-gray-900 mb-4">Upload PNG</h3>
+
+                        <input
+                            type="file"
+                            accept=".png"
+                            onChange={(e) => setFile(e.target.files?.[0] || null)}
+                            className="mb-4 block w-full text-sm text-gray-500"
+                        />
+
+                        <button
+                            onClick={handleFileUpload}
+                            disabled={!file}
+                            className="w-full bg-green-600 text-white py-2 px-4 rounded-md hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+                        >
+                            Upload
+                        </button>
+
+                        {fileResponse && (
+                            <div className="mt-4 p-3 bg-gray-50 rounded-md">
+                                <p className="text-sm text-gray-600">Response:</p>
+                                <p className="text-sm font-mono text-gray-900">{JSON.stringify(fileResponse, null, 2)}</p>
                             </div>
                         )}
                     </div>
