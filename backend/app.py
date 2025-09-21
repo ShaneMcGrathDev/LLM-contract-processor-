@@ -1,71 +1,28 @@
-from flask import Flask, jsonify
-from flask import request
+from flask import Flask
 from flask_cors import CORS
-from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy import text
-from dotenv import load_dotenv
-import os
+from config import Config
+from models import db
 
-load_dotenv()
-
-app = Flask(__name__)
-CORS(app)
-
-# Debug: Check if environment variables are loaded
-print("DATABASE_URL:", os.getenv('DATABASE_URL'))
-print("Current working directory:", os.getcwd())
-print("Files in current directory:", os.listdir('.'))
-
-# Database configuration
-database_url = os.getenv('DATABASE_URL')
-if not database_url:
-    raise ValueError("DATABASE_URL environment variable is not set!")
-
-app.config['SQLALCHEMY_DATABASE_URI'] = database_url
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-
-# Initialize database
-db = SQLAlchemy(app)
-
-@app.route('/api/health', methods=['GET'])
-def health_check():
-    return jsonify({"status": "healthy", "message": "Backend is running!"})
-
-@app.route('/api/data', methods=['GET'])
-def get_data():
-    return jsonify({"data": "Hello from Flask backend!"})
-
-@app.route('/api/test-db', methods=['GET'])
-def test_database():
-    try:
-        # Test the connection
-        result = db.session.execute(text("SELECT 1"))
-        return jsonify({"status": "success", "message": "Database connected!"})
-    except Exception as e:
-        return jsonify({"status": "error", "message": str(e)}), 500
+def create_app():
+    app = Flask(__name__)
+    app.config.from_object(Config)
     
+    # Initialize extensions
+    CORS(app)
+    db.init_app(app)
+    
+    # Register blueprints
+    from routes.backend_testing_routes import testing_bp
+    from routes.api_routes import api_bp
+    from routes.invoice_routes import invoice_bp
+    
+    app.register_blueprint(testing_bp)
+    app.register_blueprint(api_bp)
+    app.register_blueprint(invoice_bp)
+    
+    return app
 
-
-@app.route('/api/submit-number', methods=['POST'])
-def submit_number():
-    try:
-        data = request.get_json()
-        number = data.get('number')
-        
-        if number is None:
-            return jsonify({"error": "Number is required"}), 400
-        
-        # Do something with the number (save to database, process, etc.)
-        # For now, just return it back with some processing
-        result = {
-            "received_number": number,
-            "doubled": number * 2,
-            "message": f"Successfully processed number: {number}"
-        }
-        
-        return jsonify(result)
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+app = create_app()
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)
