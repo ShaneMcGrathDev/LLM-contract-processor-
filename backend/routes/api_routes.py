@@ -1,10 +1,21 @@
 from flask import Blueprint, jsonify, request
-from models import db, NumberSubmission
-from werkzeug.utils import secure_filename
+import pandas as pd
+from services.claude_service import ClaudeService
 import os
+from dotenv import load_dotenv
+
+
+# Load environment variables
+load_dotenv()
+
+# Initialize Claude service
+claude_service = ClaudeService()
 
 # Create blueprint
 api_bp = Blueprint('api', __name__, url_prefix='/api')
+
+
+
 
 @api_bp.route('/upload-excel', methods=['POST'])
 def check_excel_load():
@@ -14,26 +25,21 @@ def check_excel_load():
             
         file = request.files['file']
         
-        # Access file properties
-        print(f"Filename: {file.filename}")
-        print(f"Content Type: {file.content_type}")
+        # Read Excel file into pandas DataFrame
+        df = pd.read_excel(file)
         
-        # Read file content (as bytes)
-        file_content = file.read()
-        print(f"File size: {len(file_content)} bytes")
+        # Convert first row to JSON for Claude processing
+        first_row = df.iloc[0].to_json()
         
-        # If you want to save the file
-        # safe_filename = secure_filename(file.filename)
-        # file.save(os.path.join('uploads', safe_filename))
+        # Get Claude response
+        response = claude_service.analyze_invoice_data(first_row)
         
         return jsonify({
-            'message': 'File received successfully!!!!',
+            'message': 'File processed successfully',
             'filename': file.filename,
-            'content_type': file.content_type,
-            'file_size': len(file_content)
+            'claude_response': response,
+            'row_data': first_row
         }), 200
             
     except Exception as e:
         return jsonify({'error': str(e)}), 500
-
-
