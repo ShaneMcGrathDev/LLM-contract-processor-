@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import ExcelUpload from "@/components/case_study/ExcelUpload";
 
 export default function Page() {
     const [inputNumber, setInputNumber] = useState('');
@@ -90,6 +91,7 @@ export default function Page() {
                     <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
                         <h3 className="text-lg font-medium text-gray-900 mb-2">Another Card</h3>
                         <p className="text-gray-600">More card content here</p>
+                        <ExcelUpload />
                     </div>
 
                     {/* <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
