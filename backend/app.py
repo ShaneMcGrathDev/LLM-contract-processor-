@@ -14,10 +14,12 @@ def create_app():
     # Register blueprints
     from routes.backend_testing_routes import testing_bp
     from routes.api_routes import api_bp
+    from routes.claude_api import claude_api
     # from routes.invoice_routes import invoice_bp
     
     app.register_blueprint(testing_bp)
     app.register_blueprint(api_bp)
+    app.register_blueprint(claude_api)
     # app.register_blueprint(invoice_bp)
     
     return app
