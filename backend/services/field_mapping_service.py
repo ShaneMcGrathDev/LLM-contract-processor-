@@ -29,12 +29,13 @@ class FieldMappingService:
             ],
             'tax_amount': [
                 'tax', 'total tax', 'sales tax', 'vat', 'gst', 'tax amount',
-                'taxes', 'state tax', 'local tax', 'hst', 'pst', 'tax due', 'tax '
+                'taxes', 'state tax', 'local tax', 'hst', 'pst', 'tax due', 'tax ',
+                'tax rate'  # Added because some invoices label tax amount as "tax rate"
             ],
             'total_amount': [
-                'total', 'grand total', 'amount due', 'TotalDue', 'balance due', 'final amount',
+                'total', 'grand total', 'amount due', 'balance due', 'final amount',
                 'total due', 'net total', 'amount owing', 'balance', 'total amount',
-                'balance due '  # Added for this specific case
+                'balance due ', 'totaldue'  # Added camelCase version
             ],
             # NEW: Additional financial fields
             'freight_amount': [
@@ -65,12 +66,17 @@ class FieldMappingService:
         2. FINANCIAL LAYOUT: Look for financial totals in the bottom-right area of the invoice
         3. TRAILING SPACES: Field names may have trailing spaces (like "Tax " or "Balance due ")
         4. SCATTERED DATA: Financial summary may be spread across multiple rows, not in a single table
+        5. CAMELCASE FIELDS: Look for fields like "TotalDue" (one word) which should map to "total_amount"
+        6. MISLEADING LABELS: "Tax Rate" often contains the actual tax amount, not a percentage
+        7. LABEL-VALUE PAIRS: Financial data often appears as "Label: Value" or in adjacent columns
         
         MAPPING RULES:
         1. Always use the exact standard field names in your JSON response
         2. If you find field variations, map them to the standard field
         3. Record the source field name you actually found
         4. Include additional financial fields if found (freight, discount)
+        5. IMPORTANT: "TotalDue" (one word) should always map to "total_amount"
+        6. IMPORTANT: "Tax Rate" containing a dollar amount should map to "tax_amount" (not a percentage)
 
         Return JSON with this structure:
         {{
@@ -138,6 +144,28 @@ class FieldMappingService:
         
         return "; ".join(summary)
     
+    def test_field_detection(self, text_sample):
+        """Debug method to test field detection on a specific text sample"""
+        print("=== FIELD DETECTION TEST ===")
+        print(f"Testing text: {text_sample}")
+        
+        text_lower = text_sample.lower()
+        found_matches = {}
+        
+        for standard_field, aliases in self.field_aliases.items():
+            matches = []
+            for alias in aliases:
+                if alias.lower() in text_lower:
+                    matches.append(alias)
+            if matches:
+                found_matches[standard_field] = matches
+        
+        print("Detected matches:")
+        for field, matches in found_matches.items():
+            print(f"  {field}: {matches}")
+        
+        return found_matches
+    
     def optimize_excel_text_for_claude(self, excel_text):
         """Clean up Excel text to make it more readable for Claude"""
         
@@ -152,6 +180,30 @@ class FieldMappingService:
                 
             # Clean up None values and excessive spacing
             cleaned_line = line.replace('None', '').replace('  ', ' ').strip()
+            
+            # Special handling for financial summary rows - keep label-value pairs together
+            if any(financial_term in cleaned_line.lower() for financial_term in 
+                   ['subtotal', 'total', 'tax', 'freight', 'discount', 'balance', 'amount']):
+                # For financial rows, format as "Label: Value" to make it clearer for Claude
+                parts = [part.strip() for part in cleaned_line.split('|') if part.strip()]
+                if len(parts) >= 2:
+                    # Find the label and the numeric value
+                    label = None
+                    value = None
+                    for part in parts:
+                        if any(term in part.lower() for term in ['subtotal', 'total', 'tax', 'freight', 'discount', 'balance']):
+                            label = part
+                        elif part.replace('.', '').replace(',', '').replace('-', '').isdigit() or \
+                             (part.count('.') == 1 and part.replace('.', '').isdigit()):
+                            try:
+                                float(part)
+                                value = part
+                            except:
+                                pass
+                    
+                    if label and value:
+                        optimized_lines.append(f"{label}: {value}")
+                        continue
             
             # Only keep lines that have actual content
             if cleaned_line and len(cleaned_line) > 2:
