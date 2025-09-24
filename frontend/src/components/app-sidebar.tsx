@@ -48,7 +48,7 @@ const data = {
         },
         {
           title: "See More Invoice Data",
-          url: "#",
+          url: "/invoice-data",
         },
       ],
     },
@@ -79,7 +79,7 @@ const data = {
   projects: [
     {
       name: "New Feature Placeholder",
-      url: "#",
+      url: "/future-feature",
       icon: Frame,
     },
   ],

@@ -2,10 +2,13 @@
 
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
+import { useRouter } from 'next/navigation';
+import { Eye } from 'lucide-react';
 
 export default function SimpleInvoiceEditor({ data }) {
     const [formData, setFormData] = useState(data);
     const [saving, setSaving] = useState(false);
+    const router = useRouter();
 
     const handleSubmit = async () => {
         setSaving(true);
@@ -22,6 +25,25 @@ export default function SimpleInvoiceEditor({ data }) {
             alert('Save failed');
         }
         setSaving(false);
+    };
+
+    const handleViewDetails = () => {
+        console.log('🔍 Debug: Form data being stored:', formData);
+
+        try {
+            // Store data in localStorage
+            localStorage.setItem('currentInvoiceData', JSON.stringify(formData));
+
+            // Verify it was stored
+            const storedData = localStorage.getItem('currentInvoiceData');
+            console.log('✅ Data stored successfully:', storedData ? 'Yes' : 'No');
+            console.log('📄 Stored data preview:', storedData?.substring(0, 100) + '...');
+
+            router.push('/invoice-data');
+        } catch (error) {
+            console.error('❌ Error storing data:', error);
+            alert('Error storing invoice data. Check console.');
+        }
     };
 
     const updateField = (field, value) => {
@@ -88,15 +110,27 @@ export default function SimpleInvoiceEditor({ data }) {
                 </div>
             </div>
 
-            <Button
-                onClick={handleSubmit}
-                disabled={saving}
-                variant="default"
-                size="default"
-                className="transition-all duration-200 hover:scale-105 hover:shadow-md"
-            >
-                {saving ? 'Saving...' : 'Save to Database'}
-            </Button>
+            <div className="flex gap-3">
+                <Button
+                    onClick={handleViewDetails}
+                    variant="outline"
+                    size="sm"
+                    className="transition-all duration-200 hover:scale-105 hover:shadow-md"
+                >
+                    <Eye className="h-4 w-4 mr-2" />
+                    More Details
+                </Button>
+
+                <Button
+                    onClick={handleSubmit}
+                    disabled={saving}
+                    variant="default"
+                    size="default"
+                    className="transition-all duration-200 hover:scale-105 hover:shadow-md"
+                >
+                    {saving ? 'Saving...' : 'Save to Database'}
+                </Button>
+            </div>
         </div>
     );
 }
