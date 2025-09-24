@@ -1,33 +1,30 @@
 'use client';
 
 import { useState } from 'react';
-
-interface ExcelUploadResponse {
-    message?: string;
-    filename?: string;
-    error?: string;
-    extracted_data?: any;
-}
+import InvoiceReview from './InvoiceReview';
+import { ExcelUploadResponse, InvoiceData } from '../../types/excelTypes';
+import { uploadExcel, submitInvoice } from '../../services/excelService';
 
 export default function ExcelUpload() {
     const [file, setFile] = useState<File | null>(null);
     const [response, setResponse] = useState<ExcelUploadResponse | null>(null);
     const [isUploading, setIsUploading] = useState<boolean>(false);
+    const [processedInvoice, setProcessedInvoice] = useState<InvoiceData | null>(null);
 
     const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         const selectedFile = event.target.files?.[0];
 
         if (selectedFile) {
-            // Validate Excel file types
             const validTypes = [
-                'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', // .xlsx
-                'application/vnd.ms-excel', // .xls
-                'text/csv' // .csv
+                'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                'application/vnd.ms-excel',
+                'text/csv'
             ];
 
             if (validTypes.includes(selectedFile.type)) {
                 setFile(selectedFile);
                 setResponse(null);
+                setProcessedInvoice(null);
             } else {
                 alert('Please select an Excel file (.xlsx, .xls, or .csv)');
                 event.target.value = '';
@@ -39,21 +36,17 @@ export default function ExcelUpload() {
         if (!file) return;
 
         setIsUploading(true);
-        const formData = new FormData();
-        formData.append('file', file);
 
         try {
-            const res = await fetch('http://localhost:5000/api/upload-excel', {
-                method: 'POST',
-                body: formData,
-            });
-
-            const data: ExcelUploadResponse = await res.json();
+            const data = await uploadExcel(file);
             setResponse(data);
 
-            if (res.ok) {
+            if (data.claude_analysis) {
+                setProcessedInvoice(data.claude_analysis);
+            }
+
+            if (data.message) {
                 setFile(null);
-                // Clear the file input
                 const fileInput = document.getElementById('excel-file') as HTMLInputElement;
                 if (fileInput) fileInput.value = '';
             }
@@ -61,6 +54,18 @@ export default function ExcelUpload() {
             setResponse({ error: 'Failed to upload Excel file' });
         } finally {
             setIsUploading(false);
+        }
+    };
+
+    const handleInvoiceSubmit = async (invoiceData: InvoiceData) => {
+        try {
+            const result = await submitInvoice(invoiceData);
+            if (result.success) {
+                setProcessedInvoice(null);
+                setResponse({ message: 'Invoice saved successfully' });
+            }
+        } catch (error) {
+            setResponse({ error: 'Failed to submit invoice data' });
         }
     };
 
@@ -93,6 +98,13 @@ export default function ExcelUpload() {
             >
                 {isUploading ? 'Uploading...' : 'Upload Excel File'}
             </button>
+
+            {processedInvoice && (
+                <InvoiceReview
+                    invoiceData={processedInvoice}
+                    onSubmit={handleInvoiceSubmit}
+                />
+            )}
 
             {response && (
                 <div className="mt-4 p-3 bg-gray-50 rounded-md">
