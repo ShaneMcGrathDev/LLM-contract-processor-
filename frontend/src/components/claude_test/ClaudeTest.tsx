@@ -1,10 +1,10 @@
 'use client';
 
 import { useState } from 'react';
+import { Button } from '@/components/ui/button';
 
-export default function ClaudeTest() {
-    const [file, setFile] = useState<File | null>(null);
-    const [response, setResponse] = useState<any>(null);
+export default function ClaudeTest({ onDataReceived }) {
+    const [file, setFile] = useState(null);
     const [loading, setLoading] = useState(false);
 
     const handleUpload = async () => {
@@ -19,21 +19,32 @@ export default function ClaudeTest() {
                 method: 'POST',
                 body: formData,
             });
-            setResponse(await res.json());
+            const response = await res.json();
+            if (response.success) {
+                onDataReceived(response.data);
+            }
         } catch (error) {
-            setResponse({ error: 'Upload failed' });
+            console.error('Upload failed:', error);
         }
         setLoading(false);
     };
 
     return (
-        <div className="p-6 border rounded-lg">
-            <h3 className="text-lg font-medium mb-4">Invoice Upload</h3>
-            <input type="file" accept=".xlsx,.xls" onChange={(e) => setFile(e.target.files?.[0] || null)} className="mb-4" />
-            <button onClick={handleUpload} disabled={!file || loading} className="bg-blue-600 text-white px-4 py-2 rounded disabled:bg-gray-400">
-                {loading ? 'Processing...' : 'Upload'}
-            </button>
-            {response && <pre className="mt-4 p-3 bg-gray-100 rounded text-sm overflow-auto">{JSON.stringify(response, null, 2)}</pre>}
+        <div className="p-4 border rounded-lg shadow-md">
+            <h3 className="text-lg font-medium mb-4">Upload Invoice</h3>
+            <input
+                type="file"
+                accept=".xlsx,.xls"
+                onChange={(e) => setFile(e.target.files?.[0] || null)}
+                className="mb-4 block w-full"
+            />
+            <Button
+                onClick={handleUpload}
+                disabled={!file || loading}
+                size="default"
+            >
+                {loading ? 'Processing...' : 'Upload & Process'}
+            </Button>
         </div>
     );
 }
