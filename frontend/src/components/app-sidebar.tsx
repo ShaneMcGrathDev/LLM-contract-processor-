@@ -54,12 +54,12 @@ const data = {
     },
     {
       title: "Documentation",
-      url: "#",
+      url: "/documentation",
       icon: BookOpen,
       items: [
         {
           title: "Case Study Overview",
-          url: "#",
+          url: "/documentation",
         },
       ],
     },
