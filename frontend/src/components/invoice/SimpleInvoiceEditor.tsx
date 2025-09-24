@@ -44,21 +44,12 @@ export default function SimpleInvoiceEditor({ data }) {
                 </div>
 
                 <div>
-                    <label className="block text-sm font-medium mb-1">Invoice Number</label>
-                    <input
-                        type="text"
-                        value={formData.invoice_number || ''}
-                        onChange={(e) => updateField('invoice_number', e.target.value)}
-                        className="w-full p-2 border rounded"
-                    />
-                </div>
-
-                <div>
-                    <label className="block text-sm font-medium mb-1">Total Amount</label>
+                    <label className="block text-sm font-medium mb-1">Subtotal</label>
                     <input
                         type="number"
-                        value={formData.total_amount || 0}
-                        onChange={(e) => updateField('total_amount', parseFloat(e.target.value) || 0)}
+                        step="0.01"
+                        value={formData.subtotal || 0}
+                        onChange={(e) => updateField('subtotal', parseFloat(e.target.value) || 0)}
                         className="w-full p-2 border rounded"
                     />
                 </div>
@@ -67,9 +58,32 @@ export default function SimpleInvoiceEditor({ data }) {
                     <label className="block text-sm font-medium mb-1">Tax Amount</label>
                     <input
                         type="number"
+                        step="0.01"
                         value={formData.tax_amount || 0}
                         onChange={(e) => updateField('tax_amount', parseFloat(e.target.value) || 0)}
                         className="w-full p-2 border rounded"
+                    />
+                </div>
+
+                <div>
+                    <label className="block text-sm font-medium mb-1">Freight Amount</label>
+                    <input
+                        type="number"
+                        step="0.01"
+                        value={formData.freight_amount || 0}
+                        onChange={(e) => updateField('freight_amount', parseFloat(e.target.value) || 0)}
+                        className="w-full p-2 border rounded"
+                    />
+                </div>
+
+                <div className="md:col-span-2">
+                    <label className="block text-sm font-medium mb-1">Total Amount</label>
+                    <input
+                        type="number"
+                        step="0.01"
+                        value={formData.total_amount || 0}
+                        onChange={(e) => updateField('total_amount', parseFloat(e.target.value) || 0)}
+                        className="w-full p-2 border rounded bg-green-50 border-green-200 font-semibold"
                     />
                 </div>
             </div>
