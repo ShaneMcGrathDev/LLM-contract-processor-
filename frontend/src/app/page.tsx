@@ -1,39 +1,30 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { fetchData } from '@/utils/api';
-import { Button } from "@/components/ui/button"
+import { useState } from 'react';
+import { AppSidebar } from "@/components/app-sidebar";
+import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import ClaudeTest from '@/components/claude_test/ClaudeTest';
+import SimpleInvoiceEditor from '@/components/invoice/SimpleInvoiceEditor';
 
 export default function Home() {
-  const [data, setData] = useState<string>('');
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    fetchData('data')
-      .then((response) => {
-        setData(response.data);
-        setLoading(false);
-      })
-      .catch((error) => {
-        console.error('Error:', error);
-        setLoading(false);
-      });
-  }, []);
+  const [invoiceData, setInvoiceData] = useState(null);
 
   return (
-    <div className="min-h-screen p-8">
-      <h1 className="text-4xl font-bold mb-8">Full Stack Template</h1>
-      <div className="bg-gray-100 p-4 rounded">
-        <h2 className="text-xl font-semibold mb-2">Backend Response:</h2>
-        {loading ? (
-          <p>Loading...</p>
-        ) : (
-          <p>{data || 'No data received'}</p>
-        )}
-      </div>
-      <div>
-        <Button>Click me</Button>
-      </div>
-    </div>
+    <SidebarProvider>
+      <AppSidebar />
+      <SidebarInset>
+        <header className="flex h-16 items-center gap-2 px-4">
+          <SidebarTrigger />
+          <h1 className="text-lg font-semibold">Invoice Processing</h1>
+        </header>
+
+        <div className="flex-1 p-4 space-y-4">
+          <div className="w-full md:w-1/2 ml-0 md:ml-8">
+            <ClaudeTest onDataReceived={setInvoiceData} />
+            {invoiceData && <div className="mt-4"><SimpleInvoiceEditor data={invoiceData} /></div>}
+          </div>
+        </div>
+      </SidebarInset>
+    </SidebarProvider>
   );
 }
