@@ -9,12 +9,13 @@ from anthropic import Anthropic
 import pandas as pd
 import json
 import io
+import time
 
 
 #services: mainly LLM specific and database logic
 from services.claude_service import ClaudeService
 from services.database_service import DatabaseService
-from services.field_mapping_service import field_mapping_service # NEW IMPORT
+from services.field_mapping_service import FieldMappingService # NEW IMPORT
 
 #utility functions 
 from utils.file_validator import validate_file
@@ -29,7 +30,7 @@ load_dotenv()
 # Initialize Claude service
 claude_service = ClaudeService()
 db_service = DatabaseService()
-field_mapping_service = field_mapping_service()  # NEW SERVICE INITIALIZATION
+field_mapping_service = FieldMappingService()  # NEW SERVICE INITIALIZATION
 
 # Create blueprint
 api_bp = Blueprint('api', __name__, url_prefix='/api')
@@ -76,42 +77,13 @@ def check_excel_load():
     
 
 
-@api_bp.route('/review-invoice', methods=['POST'])
-def review_invoice():
-    try:
-        data = request.get_json()
-        
-        # Validate the edited data
-        if not data.get('invoice_data'):
-            return jsonify(format_error_response(
-                'Invalid request',
-                'No invoice data provided'
-            )), 400
-            
-          # Save to database using service
-        save_result = db_service.save_invoice(data['invoice_data'])
-        
-        return jsonify(save_result), 200
-            
-    except Exception as e:
-        return jsonify(format_error_response(
-            'Review failed',
-            str(e)
-        )), 500
-    
-
-
-
-
-# Updated claude_test route with API key debugging
 @api_bp.route('/claude_test', methods=['POST'])
 def process_invoice():
-    print("=== CLAUDE_TEST ROUTE HIT ===")  # Debug line
+    print("=== CLAUDE_TEST ROUTE HIT ===")
     try:
-        # Check if API key is loaded
-        api_key = os.getenv('CLAUDE_API_KEY')  # Changed to match your env variable
-        print(f"API Key loaded: {'Yes' if api_key else 'No'}")  # Debug line
-        print(f"API Key length: {len(api_key) if api_key else 0}")  # Debug line
+        # Initialize Claude client
+        from anthropic import Anthropic
+        api_key = os.getenv('CLAUDE_API_KEY')
         
         if not api_key:
             return jsonify({
@@ -119,86 +91,120 @@ def process_invoice():
                 'error': 'CLAUDE_API_KEY not found in environment variables'
             }), 500
         
-        # Initialize Claude client
         client = Anthropic(api_key=api_key)
-        print("Claude client initialized")  # Debug line
         
         # Get the uploaded file
         if 'file' not in request.files:
-            print("No file in request.files")  # Debug line
             return jsonify({'error': 'No file uploaded'}), 400
         
         file = request.files['file']
-        print(f"File received: {file.filename}")  # Debug line
-        
         if file.filename == '':
-            print("Empty filename")  # Debug line
             return jsonify({'error': 'No file selected'}), 400
         
-        # Read Excel file
-        print("Reading Excel file...")  # Debug line
-        df = pd.read_excel(file, sheet_name=None)
-        print(f"Excel sheets: {list(df.keys())}")  # Debug line
+        print(f"Processing file: {file.filename}")
         
-        # Convert to text format for Claude
+        # OPTIMIZATION 1: More efficient Excel reading
+        start_time = time.time()
+        df_dict = pd.read_excel(file, sheet_name=None)
+        read_time = time.time() - start_time
+        print(f"Excel read time: {read_time:.2f}s")
+        
+        # OPTIMIZATION 2: Smarter text conversion
         excel_text = ""
-        for sheet_name, sheet_df in df.items():
+        total_cells = 0
+        non_empty_cells = 0
+        
+        for sheet_name, df in df_dict.items():
+            print(f"Processing sheet '{sheet_name}': {len(df)} rows x {len(df.columns)} cols")
+            
             excel_text += f"=== SHEET: {sheet_name} ===\n"
-            excel_text += sheet_df.to_string(index=False, na_rep='')
-            excel_text += "\n\n"
+            
+            # More intelligent conversion - focus on areas with data
+            for idx, row in df.iterrows():
+                row_data = []
+                has_data = False
+                
+                for col in df.columns:
+                    cell_value = row[col]
+                    total_cells += 1
+                    
+                    if pd.notna(cell_value) and str(cell_value).strip():
+                        non_empty_cells += 1
+                        has_data = True
+                        
+                        # Handle Excel dates better
+                        if isinstance(cell_value, (int, float)) and cell_value > 40000 and cell_value < 50000:
+                            # Likely an Excel date (between 2009-2037)
+                            try:
+                                from datetime import datetime, timedelta
+                                excel_date = datetime(1900, 1, 1) + timedelta(days=cell_value - 2)
+                                row_data.append(f"Date:{excel_date.strftime('%Y-%m-%d')}")
+                            except:
+                                row_data.append(str(cell_value))
+                        else:
+                            row_data.append(str(cell_value))
+                    else:
+                        row_data.append("")
+                
+                # Only include rows that have actual data
+                if has_data:
+                    excel_text += f"Row {idx}: " + " | ".join(row_data) + "\n"
+            
+            excel_text += "\n"
         
-        print(f"Excel text length: {len(excel_text)}")  # Debug line
+        data_density = (non_empty_cells / total_cells * 100) if total_cells > 0 else 0
+        print(f"Data density: {data_density:.1f}% ({non_empty_cells}/{total_cells} cells)")
         
-        # Define desired output schema
-        schema_prompt = """
-        Extract invoice data and return as JSON with this structure:
-        {
-            "vendor_name": "",
-            "invoice_number": "",
-            "invoice_date": "",
-            "due_date": "",
-            "subtotal": 0,
-            "freight": 0,
-            "tax_amount": 0,
-            "total_amount": 0,
-            "line_items": [
-                {
-                    "description": "",
-                    "quantity": 0,
-                    "unit_price": 0,
-                    "total": 0
-                }
-            ],
-            "confidence": "high/medium/low"
-        }
-        """
+        # OPTIMIZATION 3: Use enhanced field mapping service
+        schema_prompt = field_mapping_service.create_semantic_schema_prompt()
         
-        print("Sending request to Claude...")  # Debug line
-        # Send to Claude
+        # OPTIMIZATION 4: Clean up text for Claude
+        optimized_text = field_mapping_service.optimize_excel_text_for_claude(excel_text)
+        
+        # Detect variations for debugging
+        detected_variations = field_mapping_service.detect_field_variations(optimized_text)
+        variation_summary = field_mapping_service.get_variation_summary(detected_variations)
+        print(f"Detected variations: {variation_summary}")
+        
+        # OPTIMIZATION 5: Limit text size more intelligently
+        max_chars = 3500  # Leave room for schema
+        if len(optimized_text) > max_chars:
+            print(f"Truncating text from {len(optimized_text)} to {max_chars} chars")
+            # Try to truncate at a natural break point
+            truncated_text = optimized_text[:max_chars]
+            last_newline = truncated_text.rfind('\n')
+            if last_newline > max_chars * 0.8:  # If we can find a good break point
+                optimized_text = truncated_text[:last_newline]
+            else:
+                optimized_text = truncated_text
+        
+        print(f"Sending {len(optimized_text)} chars to Claude...")
+        
+        # Send to Claude with enhanced prompt
+        claude_start = time.time()
         message = client.messages.create(
             model="claude-sonnet-4-20250514",
-            max_tokens=2000,
+            max_tokens=2500,  # Increased for more detailed response
             messages=[
                 {
                     "role": "user",
                     "content": f"""
-                    Please extract invoice information from this Excel data and return it as JSON.
+                    Extract invoice information from this Excel data. Pay special attention to financial totals in the bottom section.
                     
                     {schema_prompt}
                     
                     Excel Data:
-                    {excel_text[:4000]}
+                    {optimized_text}
                     """
                 }
             ]
         )
+        claude_time = time.time() - claude_start
+        print(f"Claude processing time: {claude_time:.2f}s")
         
-        print("Received response from Claude")  # Debug line
-        # Parse Claude's response
+        # Parse response
         response_text = message.content[0].text
-        print(f"Claude response length: {len(response_text)}")  # Debug line
         
-        # Try to extract JSON from response
         try:
             if '```json' in response_text:
                 json_start = response_text.find('```json') + 7
@@ -210,16 +216,27 @@ def process_invoice():
                 json_str = response_text[json_start:json_end]
             
             parsed_data = json.loads(json_str)
-            print("Successfully parsed JSON from Claude")  # Debug line
+            
+            total_time = time.time() - start_time
+            print(f"Total processing time: {total_time:.2f}s")
             
             return jsonify({
                 'success': True,
                 'data': parsed_data,
+                'processing_info': {
+                    'detected_variations': detected_variations,
+                    'variation_summary': variation_summary,
+                    'file_name': file.filename,
+                    'data_density_percent': round(data_density, 1),
+                    'total_processing_time': round(total_time, 2),
+                    'claude_processing_time': round(claude_time, 2),
+                    'text_length_sent': len(optimized_text)
+                },
                 'raw_response': response_text
             })
             
         except json.JSONDecodeError as json_error:
-            print(f"JSON decode error: {json_error}")  # Debug line
+            print(f"JSON decode error: {json_error}")
             return jsonify({
                 'success': False,
                 'error': 'Could not parse JSON from Claude response',
@@ -227,7 +244,7 @@ def process_invoice():
             }), 500
     
     except Exception as e:
-        print(f"Route error: {str(e)}")  # Debug line
+        print(f"Route error: {str(e)}")
         return jsonify({
             'success': False,
             'error': str(e)
