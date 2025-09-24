@@ -1,5 +1,9 @@
+
+# excel_processor.py
+
+
 """
-Excel processing utility for converting Excel files to string representation
+Multi-sheet Excel file processing routine 
 """
 import pandas as pd
 
@@ -16,6 +20,7 @@ def process_excel_to_string(file):
     Raises:
         Exception: If Excel processing fails
     """
+
     try:
         # Read Excel file - handle multiple sheets
         excel_file = pd.ExcelFile(file)
@@ -29,7 +34,7 @@ def process_excel_to_string(file):
         
         combined_text_parts = []
         
-        # Process each sheet
+        # Process each sheet, each sheet becomes a dataframe
         for sheet_name in excel_file.sheet_names:
             df = pd.read_excel(file, sheet_name=sheet_name)
             
@@ -60,6 +65,8 @@ def process_excel_to_string(file):
                 'string_representation': sheet_string
             }
             
+            # This is the sheets nested dictionary. 
+            # Builds another key called sheet_name set to the 
             processing_results['sheets_data'][sheet_name] = sheet_data
             
             # Add to combined string for Claude
