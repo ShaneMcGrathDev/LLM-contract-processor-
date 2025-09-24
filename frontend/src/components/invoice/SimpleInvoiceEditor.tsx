@@ -29,10 +29,10 @@ export default function SimpleInvoiceEditor({ data }) {
     };
 
     return (
-        <div className="p-4 border rounded-lg shadow-md space-y-4">
+        <div className="p-4 border rounded-lg shadow-sm space-y-4">
             <h3 className="text-lg font-medium">Edit Invoice Data</h3>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                     <label className="block text-sm font-medium mb-1">Vendor Name</label>
                     <input
@@ -79,6 +79,7 @@ export default function SimpleInvoiceEditor({ data }) {
                 disabled={saving}
                 variant="default"
                 size="default"
+                className="transition-all duration-200 hover:scale-105 hover:shadow-md"
             >
                 {saving ? 'Saving...' : 'Save to Database'}
             </Button>

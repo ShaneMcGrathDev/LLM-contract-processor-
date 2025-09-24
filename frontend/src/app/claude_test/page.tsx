@@ -19,7 +19,7 @@ export default function Home() {
                 </header>
 
                 <div className="flex-1 p-4 space-y-4">
-                    <div className="w-1/2 ml-8">
+                    <div className="w-full md:w-1/2 ml-0 md:ml-8">
                         <ClaudeTest onDataReceived={setInvoiceData} />
                         {invoiceData && <div className="mt-4"><SimpleInvoiceEditor data={invoiceData} /></div>}
                     </div>
