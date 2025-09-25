@@ -2,6 +2,8 @@
 
 # main flask packages 
 from flask import Blueprint, jsonify, request
+from models import db, Invoice
+from datetime import datetime
 
 from anthropic import Anthropic
 
@@ -249,3 +251,117 @@ def process_invoice():
             'success': False,
             'error': str(e)
         }), 500
+    
+
+###This is the new route to add processed invoice data to the database
+@api_bp.route('/invoices', methods=['POST'])
+def create_invoice():
+    try:
+        data = request.get_json()
+        
+        # Create new invoice
+        invoice = Invoice(
+            vendor_name=data.get('vendor_name'),
+            invoice_number=data.get('invoice_number'),
+            total_amount=float(data.get('total_amount', 0)),
+            date=datetime.fromisoformat(data.get('date')) if data.get('date') else None,
+            processed_data=data
+        )
+        
+        # Save to database
+        db.session.add(invoice)
+        db.session.commit()
+        
+        return jsonify({
+            'message': 'Invoice saved successfully',
+            'invoice': invoice.to_dict()
+        }), 201
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({
+            'error': str(e),
+            'message': 'Failed to save invoice'
+        }), 500
+    
+
+
+@api_bp.route('/review-invoice', methods=['POST'])
+def review_invoice():
+    """Save or update invoice data to database"""
+    print("=== REVIEW INVOICE ROUTE HIT ===")
+    try:
+        data = request.get_json()
+        
+        # Validate the request data
+        if not data:
+            print("No data provided")
+            return jsonify(format_error_response(
+                'Invalid request',
+                'No data provided'
+            )), 400
+            
+        if not data.get('invoice_data'):
+            print("No invoice data provided")
+            return jsonify(format_error_response(
+                'Invalid request',
+                'No invoice data provided'
+            )), 400
+        
+        invoice_data = data['invoice_data']
+        print(f"Received invoice data: {invoice_data}")
+        
+        # Validate required fields
+        required_fields = ['vendor_name', 'total_amount']
+        missing_fields = []
+        
+        for field in required_fields:
+            if not invoice_data.get(field):
+                missing_fields.append(field)
+        
+        if missing_fields:
+            print(f"Missing required fields: {missing_fields}")
+            return jsonify(format_error_response(
+                'Validation failed',
+                f'Missing required fields: {", ".join(missing_fields)}'
+            )), 400
+        
+        # Check if this is an update (has invoice_id) or new save
+        invoice_id = data.get('invoice_id')
+        
+        if invoice_id:
+            # Update existing invoice
+            print(f"Updating invoice ID: {invoice_id}")
+            save_result = db_service.update_invoice(invoice_id, invoice_data)
+        else:
+            # Save new invoice
+            print("Saving new invoice")
+            save_result = db_service.save_invoice(invoice_data)
+        
+        if save_result['success']:
+            response_data = {
+                'success': True,
+                'message': save_result['message'],
+                'data': {
+                    'invoice_id': save_result.get('invoice_id', invoice_id),
+                    'saved_at': datetime.now().isoformat(),
+                    'vendor_name': invoice_data.get('vendor_name'),
+                    'total_amount': float(invoice_data.get('total_amount', 0))
+                }
+            }
+            
+            print(f"Invoice operation successful: {response_data}")
+            return jsonify(response_data), 200
+        else:
+            print(f"Database operation failed: {save_result['message']}")
+            return jsonify(format_error_response(
+                'Database error',
+                save_result['message']
+            )), 500
+            
+    except Exception as e:
+        print(f"Error in review_invoice: {str(e)}")
+        return jsonify(format_error_response(
+            'Server error',
+            str(e)
+        )), 500

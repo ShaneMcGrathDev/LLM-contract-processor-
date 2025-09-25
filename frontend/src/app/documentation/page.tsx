@@ -7,13 +7,24 @@ import { FileText } from "lucide-react";
 export default function DocumentationPage() {
     // Your markdown content goes here
     const markdownContent = `
-# Case Study 2025: Invoice Processor Documentation
+# Invoice Processor - Project Documentation
 
-## Application Developed by Shane McGrath September 2025
+## Project Overview
 
-Welcome to the **Invoice Processor** documentation! This guide will help you understand how to use our AI-powered invoice processing system.
+This is a web application designed so users can submit invoice files, extract and structure relevant data, view and edit the data, and submit the invoice details to a database.
 
-## Overview 
+## Technologies Used
+
+### Frontend
+- **Next.js** - React framework for the user interface
+- **Shadcn UI Library** - Modern component library for consistent styling
+
+### Backend
+- **Flask** - Python web framework for API endpoints
+- **Claude LLM API** - AI-powered invoice data extraction
+- **Supabase** - PostgreSQL database hosting and management
+
+## Getting Started
 
 ### Step 1: Upload Your Invoice
 1. Click the **"Choose file"** button
@@ -35,19 +46,19 @@ After processing, you'll see the extracted invoice data in an editable form:
 
 ## Features
 
-### 🤖 AI-Powered Extraction
+### AI-Powered Extraction
 Our system uses **Claude AI** to intelligently extract data from various invoice formats:
 - Recognizes different field names (e.g., "Total Due" vs "Amount Due")
 - Handles scattered data layouts
 - Processes both table and form-based invoices
 
-### 📊 Smart Field Mapping
+### Smart Field Mapping
 The system automatically maps field variations:
 - \`TotalDue\` → Total Amount
 - \`Tax Rate\` → Tax Amount (when it contains dollar amounts)
 - \`Invoice Subtotal\` → Subtotal
 
-### ⚡ Performance Optimized
+### Performance Optimized
 - **Fast processing**: Typically 3-10 seconds
 - **Data efficiency**: Only relevant data sent to AI
 - **Smart text cleaning**: Removes unnecessary formatting
@@ -61,41 +72,77 @@ The system automatically maps field variations:
 | CSV | .csv | 🚧 Coming Soon |
 | PDF | .pdf | 🚧 Coming Soon |
 
-## Common Invoice Fields
+## Future Enhancements & Scaling Strategy
 
-The system can extract these common fields:
+### Anticipated Operational Challenges
 
-### Basic Information
-- Vendor/Supplier Name
-- Customer/Bill To Name
-- Invoice Number
-- Invoice Date
-- Due Date
+**Higher Volumes**
+Our company has a history of consistent growth with expanding customer, employee, and supplier populations. Software usage tends to follow this growth curve, especially in areas where headcount scales with business growth.
 
-### Financial Data
-- Line Items (description, quantity, price)
-- Subtotal
-- Tax Amount
-- Freight/Shipping
-- Discounts
-- **Total Amount**
+- Every invoice processed has 2,000-6,000 tokens per Claude transaction overhead
+- Higher volumes may strain rate limits in future state
+- Current architecture suitable for 100-1,000 users based on research
 
-## Tips for Better Results
+**Diversified User Base & Use Cases**
+One key design challenge is broadly solving for common challenges across diverse business units with localized nuance.
 
-### 📋 File Preparation
-- Ensure invoice data is clearly visible
-- Avoid heavily formatted or image-based invoices
-- Clean, structured data works best
+- Different business areas use varied terminology
+- Same words often describe different concepts across divisions
+- Future applications should capture requirements dynamically rather than building one solution per requirement
 
-### 🔍 Review Process
-- Always review extracted data for accuracy
-- Pay special attention to financial amounts
-- Use the "More Details" view for comprehensive checking
+**Diversified Process Needs**
+New acquisitions and product launches necessitate new workflows and application requirements.
 
-### 💾 Data Management
-- Save processed invoices to build your database
-- Use consistent vendor naming for better organization
-- Regular backups recommended
+- LLM pattern recognition fits well as part of overall strategy
+- Pairing with thoughtful in-house algorithms expands flexibility for diverse needs
+
+### Enhancement Ideas
+
+**Dynamic Prompting Generation**
+Develop intermediary functions that analyze datasets and generate dynamic prompting structures.
+
+Benefits:
+- Handle wider array of edge cases
+- Expand explicit requirements without major code overhaul
+- More flexible solutioning approach
+
+**Two-Tiered Model Approach**
+Current expensive Claude transactions could handle 100-1,000 users, but individual activity levels could strain architecture.
+
+- Funnel common cases to simpler open source LLM models
+- Reserve Claude for complex/emergent cases
+- Cost optimization while maintaining capability
+
+**Batch Processing**
+For rising submission volumes, stage and process files/data in batches at scheduled times.
+
+**User Analytics Implementation**
+Create analytics tracking:
+- Usage volume patterns
+- Geographic distribution
+- Business unit utilization
+
+## Technical Learnings & Challenges
+
+### API & Model Selection
+- Hit free-tier rate limit on Gemini model API, switched to Claude
+- Beneficial exercise comparing different LLM setups and API configurations
+
+### Infrastructure & Connectivity
+- Switched from IPv6 to IPv4 for connectivity issues
+- First time setting up Supabase database
+- Connecting LLM API to full stack application
+
+### Development Techniques
+- Using PowerShell hash tables to load test data via JSON payloads
+- OS library seek method for file pointer and byte position measurement
+- Chrome Developer Tools network tab for request analysis
+- Python request object for concurrent HTTP requests in CRUD operations
+
+### Backend Development
+- Direct hands-on work with database models in Flask
+- Building backend from ground up with Blueprints, routes, models, services/utilities
+- Creative problem-solving with Claude model prompting within routes
 
 ## Troubleshooting
 
@@ -122,6 +169,9 @@ The system can extract these common fields:
 ### Backend Routes
 - \`POST /api/claude_test\` - Process invoice with AI
 - \`POST /api/review-invoice\` - Save edited invoice data
+- \`GET /api/invoices\` - List all saved invoices
+- \`GET /api/invoices/<id>\` - Get specific invoice
+- \`DELETE /api/invoices/<id>\` - Delete invoice
 
 ### Response Format
 \`\`\`json
@@ -149,6 +199,21 @@ The system can extract these common fields:
 - Regularly review and clean your database
 - Keep backups of important invoice data
 
+## Project Reflection
+
+This case study provided an opportunity to combine new skills with existing ones while working with emerging technologies and exploring AI capabilities in a business context.
+
+### Key Takeaways
+- Valuable exposure to different LLM model configurations
+- Deepened backend development skills across Blueprint, routes, models, and services
+- Creative problem-solving with LLM prompting and edge case handling
+- Practical experience with full-stack AI integration
+
+### Areas for Improvement
+- Consider providing sample invoices upfront for testing
+- More specific guidance on example data usage
+- Clearer instruction on what elements are essential vs. optional
+
 ---
 
 ## Need Help?
@@ -157,8 +222,6 @@ If you have questions or need assistance:
 - Check this documentation first
 - Review the troubleshooting section
 - Contact our support team
-
-**Happy processing!** 🚀
   `;
 
     // Simple function to convert markdown to HTML (basic implementation)
