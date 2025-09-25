@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 
-export default function ClaudeTest({ onDataReceived }) {
+export default function InvoiceProcessor({ onDataReceived }) {
     const [file, setFile] = useState(null);
     const [loading, setLoading] = useState(false);
 

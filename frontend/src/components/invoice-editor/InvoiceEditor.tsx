@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { useRouter } from 'next/navigation';
 import { Eye } from 'lucide-react';
 
-export default function SimpleInvoiceEditor({ data }) {
+export default function InvoiceEditor({ data }) {
     const [formData, setFormData] = useState(data);
     const [saving, setSaving] = useState(false);
     const router = useRouter();
