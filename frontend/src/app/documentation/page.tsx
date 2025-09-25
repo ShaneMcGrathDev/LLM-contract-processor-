@@ -7,7 +7,7 @@ import { FileText } from "lucide-react";
 export default function DocumentationPage() {
     // Your markdown content goes here
     const markdownContent = `
-# Invoice Processor - Project Documentation
+# Invoice Processor - Project Documentation Page
 
 ## Project Overview
 
