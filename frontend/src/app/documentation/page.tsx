@@ -20,7 +20,7 @@ This is a web application designed so users can submit invoice files, extract an
 - **Shadcn UI Library** - Modern component library for consistent styling
 
 ### Backend
-- **Flask** - Python web framework for API endpoints
+- *Flask* - Python web framework for API endpoints
 - **Claude LLM API** - AI-powered invoice data extraction
 - **Supabase** - PostgreSQL database hosting and management
 
