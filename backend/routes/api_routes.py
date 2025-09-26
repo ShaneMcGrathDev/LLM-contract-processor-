@@ -5,6 +5,10 @@ from flask import Blueprint, jsonify, request
 from models import db, Invoice
 from datetime import datetime
 
+# Inputs for PDF support 
+import PyPDF2
+from io import BytesIO
+
 from anthropic import Anthropic
 
 #Added for claude_test route
@@ -104,105 +108,103 @@ def process_invoice():
             return jsonify({'error': 'No file selected'}), 400
         
         print(f"Processing file: {file.filename}")
-        
-        # OPTIMIZATION 1: More efficient Excel reading
         start_time = time.time()
-        df_dict = pd.read_excel(file, sheet_name=None)
-        read_time = time.time() - start_time
-        print(f"Excel read time: {read_time:.2f}s")
         
-        # OPTIMIZATION 2: Smarter text conversion
-        excel_text = ""
-        total_cells = 0
-        non_empty_cells = 0
-        
-        for sheet_name, df in df_dict.items():
-            print(f"Processing sheet '{sheet_name}': {len(df)} rows x {len(df.columns)} cols")
+        # Process based on file type
+        if file.filename.endswith('.pdf'):
+            # Process PDF file
+            pdf_text = ""
+            pdf_reader = PyPDF2.PdfReader(BytesIO(file.read()))
             
-            excel_text += f"=== SHEET: {sheet_name} ===\n"
+            for page in pdf_reader.pages:
+                pdf_text += page.extract_text() + "\n"
             
-            # More intelligent conversion - focus on areas with data
-            for idx, row in df.iterrows():
-                row_data = []
-                has_data = False
+            # Use the field mapping service to optimize PDF text
+            optimized_text = field_mapping_service.optimize_excel_text_for_claude(pdf_text)
+            data_density = 100  # PDF text is considered all relevant
+            
+        else:
+            # Process Excel file
+            df_dict = pd.read_excel(file, sheet_name=None)
+            excel_text = ""
+            total_cells = 0
+            non_empty_cells = 0
+            
+            for sheet_name, df in df_dict.items():
+                print(f"Processing sheet '{sheet_name}': {len(df)} rows x {len(df.columns)} cols")
+                excel_text += f"=== SHEET: {sheet_name} ===\n"
                 
-                for col in df.columns:
-                    cell_value = row[col]
-                    total_cells += 1
+                for idx, row in df.iterrows():
+                    row_data = []
+                    has_data = False
                     
-                    if pd.notna(cell_value) and str(cell_value).strip():
-                        non_empty_cells += 1
-                        has_data = True
+                    for col in df.columns:
+                        cell_value = row[col]
+                        total_cells += 1
                         
-                        # Handle Excel dates better
-                        if isinstance(cell_value, (int, float)) and cell_value > 40000 and cell_value < 50000:
-                            # Likely an Excel date (between 2009-2037)
-                            try:
-                                from datetime import datetime, timedelta
-                                excel_date = datetime(1900, 1, 1) + timedelta(days=cell_value - 2)
-                                row_data.append(f"Date:{excel_date.strftime('%Y-%m-%d')}")
-                            except:
+                        if pd.notna(cell_value) and str(cell_value).strip():
+                            non_empty_cells += 1
+                            has_data = True
+                            
+                            if isinstance(cell_value, (int, float)) and cell_value > 40000 and cell_value < 50000:
+                                try:
+                                    from datetime import datetime, timedelta
+                                    excel_date = datetime(1900, 1, 1) + timedelta(days=cell_value - 2)
+                                    row_data.append(f"Date:{excel_date.strftime('%Y-%m-%d')}")
+                                except:
+                                    row_data.append(str(cell_value))
+                            else:
                                 row_data.append(str(cell_value))
                         else:
-                            row_data.append(str(cell_value))
-                    else:
-                        row_data.append("")
+                            row_data.append("")
+                    
+                    if has_data:
+                        excel_text += f"Row {idx}: " + " | ".join(row_data) + "\n"
                 
-                # Only include rows that have actual data
-                if has_data:
-                    excel_text += f"Row {idx}: " + " | ".join(row_data) + "\n"
+                excel_text += "\n"
             
-            excel_text += "\n"
+            data_density = (non_empty_cells / total_cells * 100) if total_cells > 0 else 0
+            optimized_text = field_mapping_service.optimize_excel_text_for_claude(excel_text)
         
-        data_density = (non_empty_cells / total_cells * 100) if total_cells > 0 else 0
-        print(f"Data density: {data_density:.1f}% ({non_empty_cells}/{total_cells} cells)")
-        
-        # OPTIMIZATION 3: Use enhanced field mapping service
+        # Common processing for both file types
         schema_prompt = field_mapping_service.create_semantic_schema_prompt()
-        
-        # OPTIMIZATION 4: Clean up text for Claude
-        optimized_text = field_mapping_service.optimize_excel_text_for_claude(excel_text)
-        
-        # Detect variations for debugging
         detected_variations = field_mapping_service.detect_field_variations(optimized_text)
         variation_summary = field_mapping_service.get_variation_summary(detected_variations)
-        print(f"Detected variations: {variation_summary}")
         
-        # OPTIMIZATION 5: Limit text size more intelligently
-        max_chars = 3500  # Leave room for schema
+        # Limit text size
+        max_chars = 3500
         if len(optimized_text) > max_chars:
             print(f"Truncating text from {len(optimized_text)} to {max_chars} chars")
-            # Try to truncate at a natural break point
             truncated_text = optimized_text[:max_chars]
             last_newline = truncated_text.rfind('\n')
-            if last_newline > max_chars * 0.8:  # If we can find a good break point
+            if last_newline > max_chars * 0.8:
                 optimized_text = truncated_text[:last_newline]
             else:
                 optimized_text = truncated_text
         
         print(f"Sending {len(optimized_text)} chars to Claude...")
         
-        # Send to Claude with enhanced prompt
+        # Send to Claude
         claude_start = time.time()
         message = client.messages.create(
             model="claude-sonnet-4-20250514",
-            max_tokens=2500,  # Increased for more detailed response
+            max_tokens=2500,
             messages=[
                 {
                     "role": "user",
                     "content": f"""
-                    Extract invoice information from this Excel data. Pay special attention to financial totals in the bottom section.
+                    Extract invoice information from this {file.filename.split('.')[-1].upper()} file. 
+                    Pay special attention to financial totals and line items.
                     
                     {schema_prompt}
                     
-                    Excel Data:
+                    Document Content:
                     {optimized_text}
                     """
                 }
             ]
         )
         claude_time = time.time() - claude_start
-        print(f"Claude processing time: {claude_time:.2f}s")
         
         # Parse response
         response_text = message.content[0].text
@@ -218,9 +220,7 @@ def process_invoice():
                 json_str = response_text[json_start:json_end]
             
             parsed_data = json.loads(json_str)
-            
             total_time = time.time() - start_time
-            print(f"Total processing time: {total_time:.2f}s")
             
             return jsonify({
                 'success': True,
@@ -229,6 +229,7 @@ def process_invoice():
                     'detected_variations': detected_variations,
                     'variation_summary': variation_summary,
                     'file_name': file.filename,
+                    'file_type': file.filename.split('.')[-1].lower(),
                     'data_density_percent': round(data_density, 1),
                     'total_processing_time': round(total_time, 2),
                     'claude_processing_time': round(claude_time, 2),
@@ -251,7 +252,6 @@ def process_invoice():
             'success': False,
             'error': str(e)
         }), 500
-    
 
 ###This is the new route to add processed invoice data to the database
 @api_bp.route('/invoices', methods=['POST'])
