@@ -39,7 +39,7 @@ export default function InvoiceProcessor({ onDataReceived }) {
             <h3 className="text-lg font-medium mb-4">Upload Invoice</h3>
             <input
                 type="file"
-                accept=".xlsx,.xls,.pdf,application/pdf"
+                accept=".xlsx,.xls,.pdf,application/pdf,image/png"
                 onChange={(e) => setFile(e.target.files?.[0] || null)}
                 className="mb-4 block w-full text-sm text-gray-500 
                           file:mr-4 file:py-2 file:px-4 
