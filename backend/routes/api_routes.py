@@ -213,8 +213,9 @@ def process_invoice():
                 {
                     "role": "user",
                     "content": f"""
-                    Extract invoice information from this {file.filename.split('.')[-1].upper()} file. 
-                    Pay special attention to financial totals and line items.
+                    Extract invoice information from this {file.filename.split('.')[-1].upper()} file.
+                     {f"Note: This is OCR-extracted text from an image, so there might be some recognition errors." if file.filename.endswith('.png') else ""}
+                    Pay special attention to financial totals and line items. 
                     
                     {schema_prompt}
                     
