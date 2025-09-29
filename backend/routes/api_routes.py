@@ -7,7 +7,7 @@ from datetime import datetime
 
 
 #OCR packages
-from PIL import Image, ImageEnhance
+from PIL import Image, ImageEnhance  # Added ImageEnhance
 import pytesseract  # For OCR
 
 
@@ -127,22 +127,42 @@ def process_invoice():
         # Process based on file type
         if file.filename.endswith('.png'):
             print(f"Processing PNG: {file.filename}")
-
+            
             # Read file
             file_bytes = file.read()
             print(f"File size: {len(file_bytes)} bytes")
-            # Process PNG file
+            
+            # Open image
             image = Image.open(BytesIO(file_bytes))
-            # image = Image.open(BytesIO(file_bytes))
-            print(f"Image opened: {image.size}, mode: {image.mode}")
-            # Extract text using OCR
-            image_text = pytesseract.image_to_string(image)
+            print(f"Original image: {image.size}, mode: {image.mode}")
+            
+            # Preprocess image for better OCR accuracy
+            # 1. Upscale image (makes small text readable)
+            width, height = image.size
+            image = image.resize((width * 3, height * 3), Image.LANCZOS)
+            
+            # 2. Convert to grayscale
+            image = image.convert('L')
+            
+            # 3. Increase contrast
+            enhancer = ImageEnhance.Contrast(image)
+            image = enhancer.enhance(2.0)
+            
+            # 4. Increase sharpness
+            enhancer = ImageEnhance.Sharpness(image)
+            image = enhancer.enhance(2.0)
+            
+            # Extract text using OCR with custom parameters
+            image_text = pytesseract.image_to_string(image, config=custom_osd_params)
             print(f"Raw OCR text length: {len(image_text)}")
-            print(f"Raw OCR text preview: {image_text[:200]}")  # First 200 chars
+            print(f"\n=== RAW OCR OUTPUT ===")
+            print(image_text)
+            print(f"=== END RAW OCR ===\n")
+            
             # Use the field mapping service to optimize text
             optimized_text = field_mapping_service.optimize_image_text_for_claude(image_text)
             print(f"Optimized text length: {len(optimized_text)}")
-            print(f"Optimized text preview: {optimized_text[:200]}")
+            
             data_density = 100  # Image text is considered all relevant
 
         elif file.filename.endswith('.pdf'):
@@ -228,7 +248,7 @@ def process_invoice():
                     "role": "user",
                     "content": f"""
                     Extract invoice information from this {file.filename.split('.')[-1].upper()} file.
-                     {f"Note: This is OCR-extracted text from an image, so there might be some recognition errors." if file.filename.endswith('.png') else ""}
+                    {f"⚠️ IMPORTANT: This is OCR-extracted text from a scanned image. Some characters may be misread (e.g., 'O' vs '0', 'l' vs '1', 'S' vs '5'). Use context to infer correct values, especially for numbers and totals." if file.filename.endswith('.png') else ""}
                     Pay special attention to financial totals and line items. 
                     
                     {schema_prompt}
@@ -283,6 +303,8 @@ def process_invoice():
     
     except Exception as e:
         print(f"Route error: {str(e)}")
+        import traceback
+        print(traceback.format_exc())
         return jsonify({
             'success': False,
             'error': str(e)
