@@ -211,16 +211,12 @@ class FieldMappingService:
         
         return '\n'.join(optimized_lines)
     
-def optimize_image_text_for_claude(self, image_text):
-    """Optimize OCR-extracted text for Claude processing"""
-    lines = image_text.split('\n')
-    optimized_lines = []
-    
-    for line in lines:
-        # Clean up OCR artifacts
-        cleaned_line = line.strip().replace('|', '').replace('_', '')
-        if cleaned_line and len(cleaned_line) > 2:
-            optimized_lines.append(cleaned_line)
-    
-    return '\n'.join(optimized_lines)
+    def optimize_image_text_for_claude(self, image_text):
+        """Optimize OCR-extracted text for Claude processing"""
+        # Just clean up, don't remove lines
+        cleaned = image_text.strip()
+        cleaned = cleaned.replace('|', '').replace('_', '')
+        # Remove excessive blank lines
+        cleaned = '\n'.join(line for line in cleaned.split('\n') if line.strip())
+        return cleaned
     

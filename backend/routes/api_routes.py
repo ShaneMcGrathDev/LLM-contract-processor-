@@ -7,11 +7,14 @@ from datetime import datetime
 
 
 #OCR packages
-from PIL import Image
+from PIL import Image, ImageEnhance
 import pytesseract  # For OCR
 
 
 # Configure Tesseract OCR
+import platform
+if platform.system() == 'Windows':
+    pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
 # pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
 # Configure OCR settings for better invoice recognition
 custom_osd_params = '--oem 3 --psm 6'  # Use neural net LSTM engine with uniform block of text mode
@@ -123,12 +126,23 @@ def process_invoice():
         
         # Process based on file type
         if file.filename.endswith('.png'):
+            print(f"Processing PNG: {file.filename}")
+
+            # Read file
+            file_bytes = file.read()
+            print(f"File size: {len(file_bytes)} bytes")
             # Process PNG file
-            image = Image.open(BytesIO(file.read()))
+            image = Image.open(BytesIO(file_bytes))
+            # image = Image.open(BytesIO(file_bytes))
+            print(f"Image opened: {image.size}, mode: {image.mode}")
             # Extract text using OCR
             image_text = pytesseract.image_to_string(image)
+            print(f"Raw OCR text length: {len(image_text)}")
+            print(f"Raw OCR text preview: {image_text[:200]}")  # First 200 chars
             # Use the field mapping service to optimize text
-            optimized_text = field_mapping_service.optimize_excel_text_for_claude(image_text)
+            optimized_text = field_mapping_service.optimize_image_text_for_claude(image_text)
+            print(f"Optimized text length: {len(optimized_text)}")
+            print(f"Optimized text preview: {optimized_text[:200]}")
             data_density = 100  # Image text is considered all relevant
 
         elif file.filename.endswith('.pdf'):
