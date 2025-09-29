@@ -12,7 +12,7 @@ import pytesseract  # For OCR
 
 
 # Configure Tesseract OCR
-pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
+# pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
 # Configure OCR settings for better invoice recognition
 custom_osd_params = '--oem 3 --psm 6'  # Use neural net LSTM engine with uniform block of text mode
 
