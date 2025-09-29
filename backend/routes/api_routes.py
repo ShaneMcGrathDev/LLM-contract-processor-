@@ -5,6 +5,17 @@ from flask import Blueprint, jsonify, request
 from models import db, Invoice
 from datetime import datetime
 
+
+#OCR packages
+from PIL import Image
+import pytesseract  # For OCR
+
+
+# Configure Tesseract OCR
+pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
+# Configure OCR settings for better invoice recognition
+custom_osd_params = '--oem 3 --psm 6'  # Use neural net LSTM engine with uniform block of text mode
+
 # Inputs for PDF support 
 import PyPDF2
 from io import BytesIO
@@ -111,7 +122,16 @@ def process_invoice():
         start_time = time.time()
         
         # Process based on file type
-        if file.filename.endswith('.pdf'):
+        if file.filename.endswith('.png'):
+            # Process PNG file
+            image = Image.open(BytesIO(file.read()))
+            # Extract text using OCR
+            image_text = pytesseract.image_to_string(image)
+            # Use the field mapping service to optimize text
+            optimized_text = field_mapping_service.optimize_excel_text_for_claude(image_text)
+            data_density = 100  # Image text is considered all relevant
+
+        elif file.filename.endswith('.pdf'):
             # Process PDF file
             pdf_text = ""
             pdf_reader = PyPDF2.PdfReader(BytesIO(file.read()))
