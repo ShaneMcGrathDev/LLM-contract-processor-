@@ -186,7 +186,8 @@ def process_invoice():
         claude_start = time.time()
         message = client.messages.create(
             model="claude-sonnet-5",
-            max_tokens=2500,  # Increased for more detailed response
+            max_tokens=8192,
+            thinking={"type": "disabled"},
             messages=[
                 {
                     "role": "user",
@@ -239,6 +240,7 @@ def process_invoice():
             
         except json.JSONDecodeError as json_error:
             print(f"JSON decode error: {json_error}")
+            print(f"Raw response:\n{response_text}")
             return jsonify({
                 'success': False,
                 'error': 'Could not parse JSON from Claude response',
