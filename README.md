@@ -1,8 +1,18 @@
-#   🚀 LLM contract processing tool
+# LLM contract processing tool
 
 
 ### Overview
-This is a full stack application designed to process contracts into structured format leveraging LLM APIs. 
+This is a full stack application designed to process contracts into a structured format leveraging LLM APIs. 
+
+
+## Project setup instructions
+
+
+### Backend
+cd backend
+run python -m pip install -r requirements.txt
+
+### Frontend
 
 
 
