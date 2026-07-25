@@ -7,8 +7,8 @@ claude_api = Blueprint('claude_api', __name__, url_prefix='/api/claude')
 @claude_api.route('/models', methods=['GET'])
 def get_models():
     models = [
-        {"id": "claude-3-5-sonnet-20241022", "name": "Claude 3.5 Sonnet"},
-        {"id": "claude-3-5-haiku-20241022", "name": "Claude 3.5 Haiku"},
-        {"id": "claude-3-opus-20240229", "name": "Claude 3 Opus"}
+        {"id": "claude-opus-4-8", "name": "Claude Opus 4.8"},
+        {"id": "claude-sonnet-5", "name": "Claude Sonnet 5"},
+        {"id": "claude-haiku-4-5", "name": "Claude Haiku 4.5"}
     ]
     return jsonify({"models": models})

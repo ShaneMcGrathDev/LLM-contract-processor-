@@ -9,7 +9,7 @@ load_dotenv()
 class ClaudeService:
     def __init__(self):
         self.client = Anthropic(api_key=os.getenv('CLAUDE_API_KEY'))
-        self.model = "claude-3-haiku-20240307"
+        self.model = "claude-haiku-4-5"
     
     def analyze_invoice_data(self, data):
         """Analyze invoice data using Claude"""

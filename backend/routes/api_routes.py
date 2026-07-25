@@ -185,7 +185,7 @@ def process_invoice():
         # Send to Claude with enhanced prompt
         claude_start = time.time()
         message = client.messages.create(
-            model="claude-sonnet-4-20250514",
+            model="claude-sonnet-5",
             max_tokens=2500,  # Increased for more detailed response
             messages=[
                 {
