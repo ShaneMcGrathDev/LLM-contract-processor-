@@ -204,8 +204,8 @@ def process_invoice():
         claude_time = time.time() - claude_start
         print(f"Claude processing time: {claude_time:.2f}s")
         
-        # Parse response
-        response_text = message.content[0].text
+        # Parse response — content may include a ThinkingBlock before the text block
+        response_text = next(block.text for block in message.content if block.type == "text")
         
         try:
             if '```json' in response_text:
